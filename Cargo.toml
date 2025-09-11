@@ -1,0 +1,16 @@
+[package]
+name = "akai-lpd8-obs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.97"
+clap = { version = "4.5.37", features = ["derive", "env"] }
+midir = "0.10"
+obws = { version = "0.14", features = ["events", "builder"] }
+serde = { version = "1.0.219", features = ["std", "alloc"] }
+thiserror = "2.0.12"
+tokio = { version = "1.44", features = ["full"] }
+tokio-stream = "0.1.17"
+tokio-util = "0.7.14"
+toml = "0.8.20"
