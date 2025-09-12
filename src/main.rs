@@ -1,3 +1,9 @@
+use log::{LevelFilter, error, info};
+use log4rs::{
+    Config,
+    append::console::ConsoleAppender,
+    config::{Appender, Root},
+};
 use std::{collections::HashMap, io::stdin};
 use tokio::pin;
 use tokio_stream::StreamExt;
@@ -52,6 +58,12 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let stdout = ConsoleAppender::builder().build();
+    let config = Config::builder()
+        .appender(Appender::builder().build("stdout", Box::new(stdout)))
+        .build(Root::builder().appender("stdout").build(LevelFilter::Info))?;
+    let _handle = log4rs::init_config(config)?;
+
     let args = Args::parse();
 
     let mut f = File::open(args.config_path).await?;
@@ -126,21 +138,18 @@ async fn main() -> Result<()> {
         let initial_inputs: HashMap<_, _> =
             gather_scene_inputs(&client, initial_scene.id.clone()).await?;
 
-        println!("Initial scene inputs: {initial_inputs:?}");
-
         let events = client.events()?;
         let _event_handler = spawn(async move {
             pin!(events);
-            println!("Event Stream handler started");
+            info!("Event Stream handler started");
             while let Some(event) = events.next().await {
-                if let Event::CurrentProgramSceneChanged { id } = event {
-                    println!("New scene: {id:?}");
-                    if let Err(e) = sender.send(Message::NewScene(id)).await {
-                        println!("Could not enqueue message: {e}");
-                    }
+                if let Event::CurrentProgramSceneChanged { id } = event
+                    && let Err(e) = sender.send(Message::NewScene(id)).await
+                {
+                    error!("Could not enqueue message: {e}");
                 }
             }
-            println!("Event Stream handler ends");
+            info!("Event Stream handler ends");
         });
 
         let _handler = spawn(async move {
@@ -157,7 +166,7 @@ async fn main() -> Result<()> {
                             && let Err(e) =
                                 client.scenes().set_current_program_scene(scene_id).await
                         {
-                            println!("Could not change current program scene: {e}");
+                            error!("Could not change current program scene: {e}");
                         }
                     }
                     Message::CCPad(num, value) => {
@@ -215,10 +224,10 @@ async fn main() -> Result<()> {
             }
         });
 
-        println!("OBS Controller is up and running, press [ENTER] to quit.");
+        info!("OBS Controller is up and running, press [ENTER] to quit.");
         let mut input = String::new();
         stdin().read_line(&mut input)?;
-        println!("Bye bye");
+        info!("Bye bye");
     } else {
         Err(MidiError::PortNotFound)?
     }
