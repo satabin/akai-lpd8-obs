@@ -7,14 +7,13 @@ use log4rs::{
     append::console::ConsoleAppender,
     config::{Appender, Root},
 };
-use obws::responses::scenes::SceneId;
 use std::{collections::HashMap, io::stdin};
 
 use anyhow::Result;
 use clap::Parser;
 use serde::Deserialize;
 
-use tokio::{fs::File, io::AsyncReadExt, sync::mpsc};
+use tokio::{fs::File, io::AsyncReadExt};
 
 use crate::{midi::Lpd8, obs::Obs};
 
@@ -62,16 +61,13 @@ async fn main() -> Result<()> {
 
     let mappings: Mappings = toml::from_str(buffer.as_str())?;
 
-    let (sender, receiver) = mpsc::channel(100);
-
-    let _lpd8 = Lpd8::connect(sender.clone());
+    let lpd8 = Lpd8::connect()?;
     let _obs = Obs::connect(
         args.host,
         args.port,
         args.password,
         mappings,
-        sender,
-        receiver,
+        lpd8.messages,
     )
     .await?;
 
@@ -81,12 +77,4 @@ async fn main() -> Result<()> {
     info!("Bye bye");
 
     Ok(())
-}
-
-#[derive(Debug)]
-enum Message {
-    PCPad(u8),
-    CCPad(u8, u8),
-    Fader(u8, u8),
-    NewScene(SceneId),
 }
