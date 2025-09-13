@@ -71,8 +71,6 @@ impl Obs {
                                 }
                             }
                             Lpd8Message::CCPad(num, value) => {
-                                // pad is pressed
-                                // pad is pressed, show the scene
                                 if let Some(input_name) = mappings.pads.cc.get(&num.to_string())
                                     && let Some(input_id) = current_scene.inputs.get(input_name)
                                     && let Err(err) = client
@@ -87,8 +85,8 @@ impl Obs {
                                         .await
                                 {
                                     error!(
-                                        "Unable to change current program scene to {}: {}",
-                                        current_scene.id.name, err
+                                        "Unable to {} scene {} item {}: {}",
+                                        if value > 0 { "enable" } else { "disable" }, current_scene.id.name, input_name, err
                                     );
                                 }
                             }
