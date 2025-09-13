@@ -83,41 +83,29 @@ impl Obs {
                             && let Err(e) =
                                 client.scenes().set_current_program_scene(scene_id).await
                         {
-                            error!("Could not change current program scene: {e}");
+                            error!("Unable to set current program scene to {scene}: {e}");
                         }
                     }
                     Message::CCPad(num, value) => {
                         // pad is pressed
-                        if value > 0 {
-                            // pad is pressed, show the scene
-                            if let Some(input_name) = mappings.pads.cc.get(&num.to_string())
-                                && let Some(input_id) = current_scene.inputs.get(input_name)
-                            {
-                                client
-                                    .scene_items()
-                                    .set_enabled(SetEnabled {
-                                        scene: current_scene.id.clone().into(),
-                                        item_id: *input_id,
-                                        enabled: true,
-                                    })
-                                    .await
-                                    .unwrap();
-                            }
-                        } else {
-                            // pad is released, hide the scene
-                            if let Some(input_name) = mappings.pads.cc.get(&num.to_string())
-                                && let Some(input_id) = current_scene.inputs.get(input_name)
-                            {
-                                client
-                                    .scene_items()
-                                    .set_enabled(SetEnabled {
-                                        scene: current_scene.id.clone().into(),
-                                        item_id: *input_id,
-                                        enabled: false,
-                                    })
-                                    .await
-                                    .unwrap();
-                            }
+                        // pad is pressed, show the scene
+                        if let Some(input_name) = mappings.pads.cc.get(&num.to_string())
+                            && let Some(input_id) = current_scene.inputs.get(input_name)
+                            && let Err(err) = client
+                                .scene_items()
+                                .set_enabled(SetEnabled {
+                                    scene: current_scene.id.clone().into(),
+                                    item_id: *input_id,
+                                    // if value is > 0, pad is pressed and we show the input,
+                                    // otherwise it is released and we hide it
+                                    enabled: value > 0,
+                                })
+                                .await
+                        {
+                            error!(
+                                "Unable to change current program scene to {}: {}",
+                                current_scene.id.name, err
+                            );
                         }
                     }
                     Message::Fader(num, value) => {
@@ -125,18 +113,28 @@ impl Obs {
                             && let Some(input_id) = inputs.get(fader)
                         {
                             let req_id: obws::requests::inputs::InputId = input_id.into();
-                            client
+                            if let Err(err) = client
                                 .inputs()
                                 .set_volume(req_id, Volume::Mul(value as f32 / 127.))
                                 .await
-                                .unwrap();
+                            {
+                                error!(
+                                    "Unable to change volume of input {}: {}",
+                                    input_id.name, err
+                                );
+                            }
                         }
                     }
-                    Message::NewScene(id) => {
-                        let scene_inputs = gather_scene_inputs(&client, id.clone()).await.unwrap();
-                        current_scene.id = id;
-                        current_scene.inputs = scene_inputs;
-                    }
+                    Message::NewScene(id) => match gather_scene_inputs(&client, id.clone()).await {
+                        Ok(scene_inputs) => {
+                            current_scene.id = id;
+                            current_scene.inputs = scene_inputs;
+                        }
+                        Err(err) => error!(
+                            "Error while gathering inputs for scene {}: {}",
+                            id.name, err
+                        ),
+                    },
                 }
             }
         });

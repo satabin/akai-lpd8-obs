@@ -16,7 +16,7 @@ use serde::Deserialize;
 
 use tokio::{fs::File, io::AsyncReadExt, sync::mpsc};
 
-use crate::{midi::Lpd8 as Lpd8, obs::Obs};
+use crate::{midi::Lpd8, obs::Obs};
 
 #[derive(Debug, Deserialize, Default)]
 struct Mappings {
@@ -72,7 +72,8 @@ async fn main() -> Result<()> {
         mappings,
         sender,
         receiver,
-    ).await?;
+    )
+    .await?;
 
     info!("OBS Controller is up and running, press [ENTER] to quit.");
     let mut input = String::new();

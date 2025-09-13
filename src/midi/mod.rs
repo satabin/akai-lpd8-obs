@@ -37,9 +37,11 @@ impl Lpd8 {
                     },
                     (),
                 )
-                .unwrap();
+                .or(Err(LPD8Error::MidiError))?;
 
-            return Ok(Lpd8 { _connection: connection });
+            return Ok(Lpd8 {
+                _connection: connection,
+            });
         }
 
         Err(LPD8Error::NotFound.into())
@@ -76,4 +78,6 @@ fn process_input(msg: &[u8]) -> Option<Message> {
 enum LPD8Error {
     #[error("No LPD8 Found")]
     NotFound,
+    #[error("An error occured when connecting to LPD8")]
+    MidiError,
 }
