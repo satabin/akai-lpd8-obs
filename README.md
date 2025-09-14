@@ -140,12 +140,12 @@ Example:
 ```toml
 [[control_changes]]
 # PAD1, when pressed in CC mode, will enable the source named "Web Browser"
-pad1.action = EnableSceneItem
+pad1.action = "EnableSceneItem"
 pad1.name = "Web Browser"
 
 # PAD1, when released in CC mode, will disable the source named "Web Browser"
 pad1.on = 0
-pad1.action = DisableSceneItem
+pad1.action = "DisableSceneItem"
 pad1.name = "Web Browser"
 
 # Fader 1 (K1) when the value change will set the volume to the current fader value
