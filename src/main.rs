@@ -1,4 +1,4 @@
-mod midi;
+mod lpd8;
 mod obs;
 
 use log::{LevelFilter, info};
@@ -7,7 +7,7 @@ use log4rs::{
     append::console::ConsoleAppender,
     config::{Appender, Root},
 };
-use std::{collections::HashMap, io::stdin};
+use std::{collections::HashMap, fmt::Display, io::stdin};
 
 use anyhow::Result;
 use clap::Parser;
@@ -15,21 +15,68 @@ use serde::Deserialize;
 
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{midi::Lpd8, obs::Obs};
+use crate::{
+    lpd8::{Input, Lpd8},
+    obs::Obs,
+};
 
 #[derive(Debug, Deserialize, Default)]
 struct Mappings {
-    pads: PadMappings,
     #[serde(default)]
-    faders: HashMap<String, String>,
+    program_changes: HashMap<Input, Action>,
+    #[serde(default)]
+    control_changes: Vec<HashMap<Input, ConditionalAction>>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-struct PadMappings {
-    #[serde(default)]
-    pc: HashMap<String, String>,
-    #[serde(default)]
-    cc: HashMap<String, String>,
+#[derive(Debug, Deserialize)]
+#[serde(tag = "action")]
+enum Action {
+    SetScene { name: String },
+    SetVolume { name: String, value: Volume },
+    ToggleInput { name: String },
+    EnableSceneItem { name: String },
+    DisableSceneItem { name: String },
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Action::SetScene { name } => f.write_fmt(format_args!("set current scene to {name}")),
+            Action::SetVolume { name, value } => {
+                f.write_fmt(format_args!("set volume of {name} to {value}"))
+            }
+            Action::ToggleInput { name } => f.write_fmt(format_args!("toggle input {name}")),
+            Action::EnableSceneItem { name } => {
+                f.write_fmt(format_args!("enable scene item {name}"))
+            }
+            Action::DisableSceneItem { name } => {
+                f.write_fmt(format_args!("disable scene item {name}"))
+            }
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct ConditionalAction {
+    on: Option<u8>,
+    #[serde(flatten)]
+    action: Action,
+}
+
+#[derive(Debug, Deserialize)]
+enum Volume {
+    #[serde(rename = "pass")]
+    Pass,
+    Value(u8),
+}
+
+impl Display for Volume {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Volume::Pass => f.write_str("input value"),
+            Volume::Value(v) => f.write_fmt(format_args!("{v}")),
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -62,14 +109,8 @@ async fn main() -> Result<()> {
     let mappings: Mappings = toml::from_str(buffer.as_str())?;
 
     let lpd8 = Lpd8::connect()?;
-    let _obs = Obs::connect(
-        args.host,
-        args.port,
-        args.password,
-        mappings,
-        lpd8.messages,
-    )
-    .await?;
+    let obs = Obs::connect(args.host, args.port, args.password).await?;
+    let _handle = obs.start(mappings, lpd8.messages).await?;
 
     info!("OBS Controller is up and running, press [ENTER] to quit.");
     let mut input = String::new();

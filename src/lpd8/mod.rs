@@ -1,13 +1,34 @@
 use anyhow::Result;
 use log::error;
 use midir::{Ignore, MidiInput, MidiInputConnection};
+use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::mpsc::{self, Receiver};
 
+#[derive(Debug, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Input {
+    Pad1,
+    Pad2,
+    Pad3,
+    Pad4,
+    Pad5,
+    Pad6,
+    Pad7,
+    Pad8,
+    Fader1,
+    Fader2,
+    Fader3,
+    Fader4,
+    Fader5,
+    Fader6,
+    Fader7,
+    Fader8,
+}
+
 pub enum Lpd8Message {
-    PCPad(u8),
-    CCPad(u8, u8),
-    Fader(u8, u8),
+    ProgramChange(Input),
+    ControlChange(Input, u8),
 }
 
 pub struct Lpd8 {
@@ -65,21 +86,61 @@ fn process_input(msg: &[u8]) -> Option<Lpd8Message> {
     if status & 0xC0 == 0xC0 {
         // this is a program change (aka pad pressed is pressed in PC mode)
         let pad = msg[1];
-        Some(Lpd8Message::PCPad(pad))
+        program_change(pad)
     } else if status & 0xB0 == 0xB0 {
         // this is a control change (aka fader is rotated or pad in CC mode)
-        let control = msg[1];
+        let num = msg[1];
         let value = msg[2];
-        if (12..=19).contains(&control) {
-            // this is a pad in control change mode
-            Some(Lpd8Message::CCPad(control, value))
-        } else {
-            // this is a fader
-            Some(Lpd8Message::Fader(control, value))
-        }
+        control_change(num, value)
     } else {
         None
     }
+}
+
+fn get_input(num: u8) -> Option<Input> {
+    if num == 0 || num == 12 {
+        Some(Input::Pad1)
+    } else if num == 1 || num == 13 {
+        Some(Input::Pad2)
+    } else if num == 2 || num == 14 {
+        Some(Input::Pad3)
+    } else if num == 3 || num == 15 {
+        Some(Input::Pad4)
+    } else if num == 4 || num == 16 {
+        Some(Input::Pad5)
+    } else if num == 5 || num == 17 {
+        Some(Input::Pad6)
+    } else if num == 6 || num == 18 {
+        Some(Input::Pad7)
+    } else if num == 7 || num == 19 {
+        Some(Input::Pad8)
+    } else if num == 70 {
+        Some(Input::Fader1)
+    } else if num == 71 {
+        Some(Input::Fader2)
+    } else if num == 72 {
+        Some(Input::Fader3)
+    } else if num == 73 {
+        Some(Input::Fader4)
+    } else if num == 74 {
+        Some(Input::Fader5)
+    } else if num == 75 {
+        Some(Input::Fader6)
+    } else if num == 76 {
+        Some(Input::Fader7)
+    } else if num == 77 {
+        Some(Input::Fader8)
+    } else {
+        None
+    }
+}
+
+fn program_change(num: u8) -> Option<Lpd8Message> {
+    get_input(num).map(Lpd8Message::ProgramChange)
+}
+
+fn control_change(num: u8, value: u8) -> Option<Lpd8Message> {
+    get_input(num).map(|i| Lpd8Message::ControlChange(i, value))
 }
 
 #[derive(Debug, Error)]
