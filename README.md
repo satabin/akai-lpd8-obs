@@ -2,7 +2,7 @@
 
 This small utility allows to easily configure an [Akai LPD8 Mk2](https://www.akaipro.com/lpd8-mk2.html) to control [OBS](https://obsproject.com/).
 
-You can configure the 8 pads in PC and CC modes, as well as the 8 faders. Configuration is made through a [TOML](https://toml.io) file.
+You can configure the 8 pads in PC and CC modes, as well as the 8 knobs. Configuration is made through a [TOML](https://toml.io) file.
 
 The program talks to OBS via its WebSocket API, so be sure to start the WebSocket server on OBS 28+.
 
@@ -22,14 +22,14 @@ Following controller inputs are configurable for the controller:
  - `pad6`
  - `pad7`
  - `pad8`
- - `fader1`
- - `fader2`
- - `fader3`
- - `fader4`
- - `fader5`
- - `fader6`
- - `fader7`
- - `fader8`
+ - `knob1`
+ - `knob2`
+ - `knob3`
+ - `knob4`
+ - `knob5`
+ - `knob6`
+ - `knob7`
+ - `knob8`
 
 ### Possible actions
 
@@ -50,7 +50,7 @@ This action set the volume either to the control change data value (if set to `p
 
 Volume is set in _multiplier_ mode (from 0 to 100%).
 
-Fader values from controller are from 0 to 127 (inclusive), `0` representing _0%_ and `127` representing `100%`.
+Knob values from controller are from 0 to 127 (inclusive), `0` representing _0%_ and `127` representing `100%`.
 
 In PC mode, the pad value is always `0`.
 
@@ -131,7 +131,7 @@ pad8 = { action = "ToggleInput", name = "Microphone" }
 
 ### `control_changes`
 
-The `control_changes` section is a list of maps from a pad when in CC mode or a fader to a conditional action.
+The `control_changes` section is a list of maps from a pad when in CC mode or a knob to a conditional action.
 
 A conditional action is like a standard action but has an optional extra field `on` that can indicate on which value the action triggers. Valid values for the `on` field are integer between 0 and 127 (inclusive).
 
@@ -150,7 +150,7 @@ pad1.action = "DisableSceneItem"
 pad1.name = "Web Browser"
 
 [[control_changes]]
-# Fader 1 (K1) when the value change will set the volume to the current fader value
-fader1.action = "SetVolume"
-fader1.value = "pass"
+# Knob 1 (K1) when the value change will set the volume to the current knob value
+knob1.action = "SetVolume"
+knob1.value = "pass"
 ```

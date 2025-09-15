@@ -16,14 +16,55 @@ pub enum Input {
     Pad6,
     Pad7,
     Pad8,
-    Fader1,
-    Fader2,
-    Fader3,
-    Fader4,
-    Fader5,
-    Fader6,
-    Fader7,
-    Fader8,
+    Knob1,
+    Knob2,
+    Knob3,
+    Knob4,
+    Knob5,
+    Knob6,
+    Knob7,
+    Knob8,
+}
+
+impl TryFrom<u8> for Input {
+    type Error = LPD8Error;
+    fn try_from(value: u8) -> std::result::Result<Self, Self::Error> {
+        if value == 0 || value == 12 {
+            Ok(Input::Pad1)
+        } else if value == 1 || value == 13 {
+            Ok(Input::Pad2)
+        } else if value == 2 || value == 14 {
+            Ok(Input::Pad3)
+        } else if value == 3 || value == 15 {
+            Ok(Input::Pad4)
+        } else if value == 4 || value == 16 {
+            Ok(Input::Pad5)
+        } else if value == 5 || value == 17 {
+            Ok(Input::Pad6)
+        } else if value == 6 || value == 18 {
+            Ok(Input::Pad7)
+        } else if value == 7 || value == 19 {
+            Ok(Input::Pad8)
+        } else if value == 70 {
+            Ok(Input::Knob1)
+        } else if value == 71 {
+            Ok(Input::Knob2)
+        } else if value == 72 {
+            Ok(Input::Knob3)
+        } else if value == 73 {
+            Ok(Input::Knob4)
+        } else if value == 74 {
+            Ok(Input::Knob5)
+        } else if value == 75 {
+            Ok(Input::Knob6)
+        } else if value == 76 {
+            Ok(Input::Knob7)
+        } else if value == 77 {
+            Ok(Input::Knob8)
+        } else {
+            Err(LPD8Error::UnknownInput(value))
+        }
+    }
 }
 
 pub enum Lpd8Message {
@@ -97,56 +138,24 @@ fn process_input(msg: &[u8]) -> Option<Lpd8Message> {
     }
 }
 
-fn get_input(num: u8) -> Option<Input> {
-    if num == 0 || num == 12 {
-        Some(Input::Pad1)
-    } else if num == 1 || num == 13 {
-        Some(Input::Pad2)
-    } else if num == 2 || num == 14 {
-        Some(Input::Pad3)
-    } else if num == 3 || num == 15 {
-        Some(Input::Pad4)
-    } else if num == 4 || num == 16 {
-        Some(Input::Pad5)
-    } else if num == 5 || num == 17 {
-        Some(Input::Pad6)
-    } else if num == 6 || num == 18 {
-        Some(Input::Pad7)
-    } else if num == 7 || num == 19 {
-        Some(Input::Pad8)
-    } else if num == 70 {
-        Some(Input::Fader1)
-    } else if num == 71 {
-        Some(Input::Fader2)
-    } else if num == 72 {
-        Some(Input::Fader3)
-    } else if num == 73 {
-        Some(Input::Fader4)
-    } else if num == 74 {
-        Some(Input::Fader5)
-    } else if num == 75 {
-        Some(Input::Fader6)
-    } else if num == 76 {
-        Some(Input::Fader7)
-    } else if num == 77 {
-        Some(Input::Fader8)
-    } else {
-        None
-    }
-}
-
 fn program_change(num: u8) -> Option<Lpd8Message> {
-    get_input(num).map(Lpd8Message::ProgramChange)
+    num.try_into()
+        .log_error("Unable to detect program change input")
+        .map(Lpd8Message::ProgramChange)
 }
 
 fn control_change(num: u8, value: u8) -> Option<Lpd8Message> {
-    get_input(num).map(|i| Lpd8Message::ControlChange(i, value))
+    num.try_into()
+        .log_error("Unable to detect control change input")
+        .map(|i| Lpd8Message::ControlChange(i, value))
 }
 
 #[derive(Debug, Error)]
-enum LPD8Error {
+pub enum LPD8Error {
     #[error("No LPD8 Found")]
     NotFound,
     #[error("An error occured when connecting to LPD8")]
     MidiError,
+    #[error("Unknown LPD8 input with id {0}")]
+    UnknownInput(u8),
 }
