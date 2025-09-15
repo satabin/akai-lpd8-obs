@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use log::error;
+use log::{error, info};
+use log_error::LogError;
 use obws::{
     Client,
     events::Event,
@@ -75,23 +76,25 @@ impl Obs {
                 select! {
                     Some(msg) = lpd8_messages.recv() => {
                         match msg {
-                            Lpd8Message::ProgramChange(input) => {
-                                if let Some(action) = pc_mappings.get(&input)
-                                    && let Err(e) =
-                                        self.execute_action(action, 0, &current_scene).await
-                                {
-                                    error!("Unable to execute action {action}: {e}");
+                                Lpd8Message::ProgramChange(input) => {
+                                    if let Some(action) = pc_mappings.get(&input) {
+                                        self
+                                            .execute_action(action, 0, &current_scene)
+                                            .await
+                                            .log_error(format!("Unable to execut action {action}").as_str());
+                                    }
                                 }
+                                Lpd8Message::ControlChange(input, value) => {
+                                    if let Some(action_with_default) = cc_mappings.get(&input)
+                                        && let Some(action) = action_with_default.get(value)
+                                    {
+                                        self
+                                            .execute_action(action, value, &current_scene)
+                                            .await
+                                            .log_error(format!("Unable to execut action {action}").as_str());
+                                    }
                             }
-                            Lpd8Message::ControlChange(input, value) => {
-                                if let Some(action_with_default) = cc_mappings.get(&input)
-                                    && let Some(action) = action_with_default.get(value)
-                                    && let Err(e) = self.execute_action(action, value, &current_scene).await
-                                {
-                                    error!("Unable to execute action {action}: {e}");
-                                }
                         }
-                    }
                     },
                     Some(event) = events.next() => {
                         if let Event::CurrentProgramSceneChanged { id } = event {

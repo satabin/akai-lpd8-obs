@@ -7,6 +7,7 @@ edition = "2024"
 anyhow = "1.0.97"
 clap = { version = "4.5.37", features = ["derive", "env"] }
 log = "0.4.28"
+log-error = "0.1.2"
 log4rs = { version = "1.4.0", features = ["console_appender"] }
 midir = "0.10"
 obws = { version = "0.14", features = ["events", "builder"] }

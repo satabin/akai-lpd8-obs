@@ -1,5 +1,6 @@
 use anyhow::Result;
 use log::error;
+use log_error::LogError;
 use midir::{Ignore, MidiInput, MidiInputConnection};
 use serde::Deserialize;
 use thiserror::Error;
@@ -98,10 +99,10 @@ impl Lpd8 {
                     &lpd8_port,
                     "lpd8",
                     move |_, msg, _| {
-                        if let Some(msg) = process_input(msg)
-                            && let Err(err) = sender.blocking_send(msg)
-                        {
-                            error!("Cannot send message to channel: {err}");
+                        if let Some(msg) = process_input(msg) {
+                            sender
+                                .blocking_send(msg)
+                                .log_error("Cannot send message to channel");
                         }
                     },
                     (),

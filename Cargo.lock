@@ -24,6 +24,7 @@ dependencies = [
  "anyhow",
  "clap",
  "log",
+ "log-error",
  "log4rs",
  "midir",
  "obws",
@@ -748,6 +749,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "log-error"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd8dd67c8858e107a370d92b556186a6dc7d4163cb0f82f1ba3bc61054eb9669"
+dependencies = [
+ "log",
 ]
 
 [[package]]
