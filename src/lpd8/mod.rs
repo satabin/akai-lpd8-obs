@@ -124,12 +124,12 @@ fn process_input(msg: &[u8]) -> Option<Lpd8Message> {
     }
 
     let status = msg[0];
-    if status & 0xC0 == 0xC0 {
+    if status & 0xC0 == 0xC0 && msg.len() == 2 {
         // this is a program change (aka pad pressed is pressed in PC mode)
         let pad = msg[1];
         program_change(pad)
-    } else if status & 0xB0 == 0xB0 {
-        // this is a control change (aka fader is rotated or pad in CC mode)
+    } else if status & 0xB0 == 0xB0 && msg.len() == 3 {
+        // this is a control change (aka knob is rotated or pad in CC mode)
         let num = msg[1];
         let value = msg[2];
         control_change(num, value)
