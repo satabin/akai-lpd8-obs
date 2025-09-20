@@ -99,6 +99,19 @@ Example:
 <input>.name = "Web Browser"
 ```
 
+#### `ToggleSceneItem`
+
+This action takes a parameter `name` indicating the OBS scene item (aka source) name to toggle when the controller input is triggered.
+
+The configuration file allows following sections
+
+Example:
+
+```toml
+<input>.action = "ToggleSceneItem"
+<input>.name = "Web Browser"
+```
+
 ### `program_changes`
 
 The `program_changes` section is a map from a pad when in PC mode to an action.

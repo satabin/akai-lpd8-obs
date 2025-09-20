@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use log::{error, info};
+use log::{error, warn};
 use log_error::LogError;
 use obws::{
     Client,
@@ -74,39 +74,50 @@ impl Obs {
 
             loop {
                 select! {
-                    Some(msg) = lpd8_messages.recv() => {
+                    msg = lpd8_messages.recv() => {
                         match msg {
-                                Lpd8Message::ProgramChange(input) => {
-                                    if let Some(action) = pc_mappings.get(&input) {
-                                        self
-                                            .execute_action(action, 0, &current_scene)
-                                            .await
-                                            .log_error(format!("Unable to execut action {action}").as_str());
-                                    }
+                            Some(Lpd8Message::ProgramChange(input)) => {
+                                if let Some(action) = pc_mappings.get(&input) {
+                                    self
+                                        .execute_action(action, 0, &current_scene)
+                                        .await
+                                        .log_error(format!("Unable to execut action {action}").as_str());
                                 }
-                                Lpd8Message::ControlChange(input, value) => {
-                                    if let Some(action_with_default) = cc_mappings.get(&input)
-                                        && let Some(action) = action_with_default.get(value)
-                                    {
-                                        self
-                                            .execute_action(action, value, &current_scene)
-                                            .await
-                                            .log_error(format!("Unable to execut action {action}").as_str());
-                                    }
+                            }
+                            Some(Lpd8Message::ControlChange(input, value)) => {
+                                if let Some(action_with_default) = cc_mappings.get(&input)
+                                    && let Some(action) = action_with_default.get(value)
+                                {
+                                    self
+                                        .execute_action(action, value, &current_scene)
+                                        .await
+                                        .log_error(format!("Unable to execut action {action}").as_str());
+                                }
+                            }
+                            None => {
+                                warn!("The LPD8 has been disconnected");
+                                break;
                             }
                         }
                     },
-                    Some(event) = events.next() => {
-                        if let Event::CurrentProgramSceneChanged { id } = event {
-                            match gather_scene_inputs(&self.client, id.clone()).await {
-                                Ok(scene_inputs) => {
-                                    current_scene.id = id;
-                                    current_scene.inputs = scene_inputs;
-                                }
-                                Err(err) => error!(
-                                    "Error while gathering inputs for scene {}: {}",
-                                    id.name, err
-                                ),
+                    event = events.next() => {
+                        match event {
+                            Some(event) =>
+                                if let Event::CurrentProgramSceneChanged { id } = event {
+                                    match gather_scene_inputs(&self.client, id.clone()).await {
+                                        Ok(scene_inputs) => {
+                                            current_scene.id = id;
+                                            current_scene.inputs = scene_inputs;
+                                        }
+                                        Err(err) => error!(
+                                            "Error while gathering inputs for scene {}: {}",
+                                            id.name, err
+                                        ),
+                                    }
+                                },
+                            None => {
+                                warn!("OBS has been shut down");
+                                break;
                             }
                         }
                     },
@@ -171,6 +182,23 @@ impl Obs {
                             scene: current_scene.id.clone().into(),
                             item_id: *input_id,
                             enabled: false,
+                        })
+                        .await?
+                }
+            }
+            Action::ToggleSceneItem { name } => {
+                if let Some(input_id) = current_scene.inputs.get(name) {
+                    let enabled = self
+                        .client
+                        .scene_items()
+                        .enabled(current_scene.id.clone().into(), *input_id)
+                        .await?;
+                    self.client
+                        .scene_items()
+                        .set_enabled(SetEnabled {
+                            scene: current_scene.id.clone().into(),
+                            item_id: *input_id,
+                            enabled: !enabled,
                         })
                         .await?
                 }

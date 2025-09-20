@@ -36,6 +36,7 @@ enum Action {
     ToggleInput { name: String },
     EnableSceneItem { name: String },
     DisableSceneItem { name: String },
+    ToggleSceneItem { name: String },
 }
 
 impl Display for Action {
@@ -51,6 +52,9 @@ impl Display for Action {
             }
             Action::DisableSceneItem { name } => {
                 f.write_fmt(format_args!("disable scene item {name}"))
+            }
+            Action::ToggleSceneItem { name } => {
+                f.write_fmt(format_args!("toggle scene item {name}"))
             }
         }
     }
