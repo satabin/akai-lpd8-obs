@@ -58,9 +58,11 @@ Example:
 
 ```toml
 <input>.action = "SetVolume"
+<input>.name = "Microphone"
 <input>.value = "pass" # pass the current value of the controller input
 
 <input>.action = "SetVolume"
+<input>.name = "Microphone"
 <input>.value = 10 # always sets the volume to 10%
 ```
 
@@ -163,7 +165,8 @@ pad1.action = "DisableSceneItem"
 pad1.name = "Web Browser"
 
 [[control_changes]]
-# Knob 1 (K1) when the value change will set the volume to the current knob value
+# Knob 1 (K1) when the value change will set the volume of input `Microphone` to the current knob value
 knob1.action = "SetVolume"
+knob1.name = "Microphone"
 knob1.value = "pass"
 ```
